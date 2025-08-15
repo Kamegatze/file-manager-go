@@ -1,0 +1,11 @@
+server:
+  host: 127.0.0.1
+  port: 8080
+
+datasource:
+  username: postgres
+  password: postgres
+  database: file-manager
+  host: 127.0.0.1
+  port: 5432
+  driver: postgres
