@@ -67,3 +67,7 @@ func (server ServerConfig) Run() error {
 
 	return nil
 }
+
+func (server ServerConfig) Close() error {
+	return nil
+}

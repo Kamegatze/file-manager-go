@@ -79,12 +79,6 @@ func NewDatasourceStarter() (Starter, error) {
 }
 
 func (datasourceConfig DatasourceConfig) OpenDatabase() (*sql.DB, error) {
-	datasourceConfig, err := NewDatasource()
-
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
 
 	connection, err := datasourceConfig.CreateConnectionString()
 
@@ -96,14 +90,14 @@ func (datasourceConfig DatasourceConfig) OpenDatabase() (*sql.DB, error) {
 	return sql.Open(datasourceConfig.Driver, connection)
 }
 
-func (datasourceConfig DatasourceConfig) Migration() error {
+func (datasourceConfig DatasourceConfig) Migration(migrationPath string) error {
 	connectionString, err := datasourceConfig.CreateConnectionString()
 
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	m, err := migrate.New("file:./migrations", connectionString)
+	m, err := migrate.New(migrationPath, connectionString)
 
 	if err != nil {
 		log.Fatal(err)
@@ -119,30 +113,31 @@ func (datasourceConfig DatasourceConfig) Migration() error {
 }
 
 func (datasourceConfig DatasourceConfig) Run() error {
-	datasourceConfig, err := NewDatasource()
+	if err := datasourceConfig.Migration("file:./migrations"); err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return RunDatabase(datasourceConfig)
+}
+
+func (datasourceConfig DatasourceConfig) Close() error {
+	if err := datasource.Close(); err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
+func RunDatabase(datasourceConfig DatasourceConfig) error {
+
+	db, err := datasourceConfig.OpenDatabase()
 
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
-	if err := datasourceConfig.Migration(); err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	datasource, err := datasourceConfig.OpenDatabase()
-
-	if err != nil {
-		log.Fatal(err)
-		return err
-	}
-
-	defer func() {
-		if err := datasource.Close(); err != nil {
-			log.Panic(err)
-		}
-	}()
+	datasource = db
 
 	return nil
 }
