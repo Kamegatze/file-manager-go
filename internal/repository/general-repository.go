@@ -2,7 +2,8 @@ package repository
 
 import (
 	"database/sql"
-	"file-manager/configuration"
+	"file-manager/internal/configuration"
+	pointer_utility "file-manager/pkg/pointer-utility"
 	"fmt"
 	"log"
 	"reflect"
@@ -12,11 +13,12 @@ import (
 
 type Repository[E interface{}, ID any] interface {
 	GetAll() ([]E, error)
-	GetById(id ID) (*E, error)
-	Insert(entity E) (*E, error)
-	Update(entity E) (*E, error)
-	Delete(entity E) (*ID, error)
-	DeleteById(id ID) (*ID, error)
+	GetAllPageable(pageable Pageable) ([]E, error)
+	GetById(id *ID) (*E, error)
+	Insert(entity *E) (*E, error)
+	Update(entity *E) (*E, error)
+	Delete(entity *E) (*ID, error)
+	DeleteById(id *ID) (*ID, error)
 }
 
 type RowMapper[E interface{}, ID any] func(rows *sql.Rows) (E, error)
@@ -94,7 +96,51 @@ func (generalRepository GeneralRepository[E, ID]) GetAll() ([]E, error) {
 	return slice, nil
 }
 
-func (generalRepository GeneralRepository[E, ID]) GetById(id ID) (*E, error) {
+func (generalRepository GeneralRepository[E, ID]) GetAllPageable(pageable Pageable) ([]E, error) {
+	keys, _, _ := generalRepository.metaInfoGet((*E)(nil))
+
+	db, err := configuration.GetDB()
+	if err != nil {
+		return nil, err
+	}
+
+	buider := sqlbuilder.Select(keys...).From(generalRepository.tableName)
+	if len(pageable.OrderBy()) > 0 {
+		buider.OrderBy(pageable.OrderBy()...)
+	}
+	buider.Limit(pageable.Limit())
+	buider.Offset(pageable.Offset())
+	buider.SetFlavor(generalRepository.flavors)
+	sql, args := buider.Build()
+
+	rows, err := db.Query(sql, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	slice := []E{}
+
+	for rows.Next() {
+		entity, err := generalRepository.callBack(rows)
+		if err != nil {
+			return slice, err
+		}
+		slice = append(slice, entity)
+	}
+	return slice, nil
+}
+
+func (generalRepository GeneralRepository[E, ID]) GetById(id *ID) (*E, error) {
+	if err := pointer_utility.PointerIsNil(id, "id is nil"); err != nil {
+		return nil, err
+	}
+
 	keys, _, indexId := generalRepository.metaInfoGet((*E)(nil))
 
 	db, err := configuration.GetDB()
@@ -129,9 +175,13 @@ func (generalRepository GeneralRepository[E, ID]) GetById(id ID) (*E, error) {
 	return nil, fmt.Errorf("not found entity by id: #%v in table: %s", id, generalRepository.tableName)
 }
 
-func (generalRepository GeneralRepository[E, ID]) Insert(entity E) (*E, error) {
+func (generalRepository GeneralRepository[E, ID]) Insert(entity *E) (*E, error) {
 
-	keys, values, indexId := generalRepository.metaInfoGet(&entity)
+	if err := pointer_utility.PointerIsNil(entity, "entity is nil"); err != nil {
+		return nil, err
+	}
+
+	keys, values, indexId := generalRepository.metaInfoGet(entity)
 
 	keysWithoutId := []string{}
 	valuesWithoutId := []any{}
@@ -142,9 +192,19 @@ func (generalRepository GeneralRepository[E, ID]) Insert(entity E) (*E, error) {
 	valuesWithoutId = append(valuesWithoutId, values[:indexId]...)
 	valuesWithoutId = append(valuesWithoutId, values[indexId+1:]...)
 
+	keysWithoutNil := make([]string, 0, len(keysWithoutId))
+	valuesWithoutNil := make([]any, 0, len(keysWithoutId))
+
+	for i, value := range valuesWithoutId {
+		if reflect.ValueOf(value).Kind() != reflect.Ptr || !reflect.ValueOf(value).IsNil() {
+			keysWithoutNil = append(keysWithoutNil, keysWithoutId[i])
+			valuesWithoutNil = append(valuesWithoutNil, value)
+		}
+	}
+
 	builder := sqlbuilder.InsertInto(generalRepository.tableName)
-	builder.Cols(keysWithoutId...)
-	builder.Values(valuesWithoutId...)
+	builder.Cols(keysWithoutNil...)
+	builder.Values(valuesWithoutNil...)
 	builder.Returning(keys...)
 	builder.SetFlavor(generalRepository.flavors)
 	sql, args := builder.Build()
@@ -176,8 +236,13 @@ func (generalRepository GeneralRepository[E, ID]) Insert(entity E) (*E, error) {
 	return nil, fmt.Errorf("error insert into in table %s", generalRepository.tableName)
 }
 
-func (generalRepository GeneralRepository[E, ID]) Update(entity E) (*E, error) {
-	keys, values, indexId := generalRepository.metaInfoGet(&entity)
+func (generalRepository GeneralRepository[E, ID]) Update(entity *E) (*E, error) {
+
+	if err := pointer_utility.PointerIsNil(entity, "entity is nil"); err != nil {
+		return nil, err
+	}
+
+	keys, values, indexId := generalRepository.metaInfoGet(entity)
 
 	builder := sqlbuilder.Update(generalRepository.tableName)
 	sets := []string{}
@@ -216,13 +281,33 @@ func (generalRepository GeneralRepository[E, ID]) Update(entity E) (*E, error) {
 	return nil, fmt.Errorf("error update in table %s by id: %v", generalRepository.tableName, values[indexId])
 }
 
-func (generalRepository GeneralRepository[E, ID]) Delete(entity E) (*ID, error) {
-	_, values, indexId := generalRepository.metaInfoGet(&entity)
-	id := values[indexId].(ID)
-	return generalRepository.DeleteById(id)
+func (generalRepository GeneralRepository[E, ID]) Delete(entity *E) (*ID, error) {
+
+	if err := pointer_utility.PointerIsNil(entity, "entity is nil"); err != nil {
+		return nil, err
+	}
+
+	keys, values, indexId := generalRepository.metaInfoGet(entity)
+
+	if reflect.ValueOf(values[indexId]).IsNil() {
+		return nil, fmt.Errorf("value from field %s no must be nil", keys[indexId])
+	}
+
+	var id ID
+	if reflect.ValueOf(values[indexId]).Kind() == reflect.Ptr {
+		id = *values[indexId].(*ID)
+	} else {
+		id = values[indexId].(ID)
+	}
+	return generalRepository.DeleteById(&id)
 }
 
-func (generalRepository GeneralRepository[E, ID]) DeleteById(id ID) (*ID, error) {
+func (generalRepository GeneralRepository[E, ID]) DeleteById(id *ID) (*ID, error) {
+
+	if err := pointer_utility.PointerIsNil(id, "id is nil"); err != nil {
+		return nil, err
+	}
+
 	keys, _, indexId := generalRepository.metaInfoGet((*E)(nil))
 
 	builder := sqlbuilder.DeleteFrom(generalRepository.tableName)

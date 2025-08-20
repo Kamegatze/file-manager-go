@@ -31,10 +31,10 @@ func (server ServerConfig) Address() (string, error) {
 	return fmt.Sprintf("%s:%d", server.Host, server.Port), nil
 }
 
-func NewServer() (ServerConfig, error) {
+func NewServer(path string) (ServerConfig, error) {
 	server := ServerConfig{}
 
-	if err := InitConfig(); err != nil {
+	if err := InitConfig(path); err != nil {
 		return server, err
 	}
 
@@ -44,18 +44,12 @@ func NewServer() (ServerConfig, error) {
 	return server, nil
 }
 
-func NewServerStarter() (Starter, error) {
-	return NewServer()
+func NewServerStarter(path string) (Starter, error) {
+	return NewServer(path)
 }
 
 func (server ServerConfig) Run() error {
 	router := gin.Default()
-
-	server, err := NewServer()
-
-	if err != nil {
-		return err
-	}
 
 	address, err := server.Address()
 

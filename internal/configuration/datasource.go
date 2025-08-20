@@ -14,12 +14,13 @@ import (
 )
 
 type DatasourceConfig struct {
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	Database string `mapstructure:"database"`
-	Host     string `mapstructure:"host"`
-	Port     int32  `mapstructure:"port"`
-	Driver   string `mapstructure:"driver"`
+	Username      string `mapstructure:"username"`
+	Password      string `mapstructure:"password"`
+	Database      string `mapstructure:"database"`
+	Host          string `mapstructure:"host"`
+	Port          int32  `mapstructure:"port"`
+	Driver        string `mapstructure:"driver"`
+	MigrationPath string `mapstructure:"migration-path"`
 }
 
 var datasource *sql.DB
@@ -59,10 +60,10 @@ func (datasourceConfig DatasourceConfig) CreateConnectionString() (string, error
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", datasourceConfig.Username, datasourceConfig.Password, datasourceConfig.Host, datasourceConfig.Port, datasourceConfig.Database), nil
 }
 
-func NewDatasource() (DatasourceConfig, error) {
+func NewDatasource(path string) (DatasourceConfig, error) {
 	datasource := DatasourceConfig{}
 
-	if err := InitConfig(); err != nil {
+	if err := InitConfig(path); err != nil {
 		log.Fatal(err)
 		return datasource, err
 	}
@@ -74,8 +75,8 @@ func NewDatasource() (DatasourceConfig, error) {
 	return datasource, nil
 }
 
-func NewDatasourceStarter() (Starter, error) {
-	return NewDatasource()
+func NewDatasourceStarter(path string) (Starter, error) {
+	return NewDatasource(path)
 }
 
 func (datasourceConfig DatasourceConfig) OpenDatabase() (*sql.DB, error) {
@@ -113,7 +114,7 @@ func (datasourceConfig DatasourceConfig) Migration(migrationPath string) error {
 }
 
 func (datasourceConfig DatasourceConfig) Run() error {
-	if err := datasourceConfig.Migration("file:./migrations"); err != nil {
+	if err := datasourceConfig.Migration(datasourceConfig.MigrationPath); err != nil {
 		log.Fatal(err)
 		return err
 	}

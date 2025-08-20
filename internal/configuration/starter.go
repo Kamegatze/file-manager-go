@@ -7,12 +7,12 @@ type Starter interface {
 	Close() error
 }
 
-type NewObject func() (Starter, error)
+type NewObject func(path string) (Starter, error)
 
-func Runner(fn ...NewObject) error {
+func Runner(path string, fn ...NewObject) error {
 	starters := make([]Starter, len(fn))
 	for index, item := range fn {
-		object, err := item()
+		object, err := item(path)
 		if err != nil {
 			return err
 		}

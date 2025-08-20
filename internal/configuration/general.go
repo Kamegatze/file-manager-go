@@ -7,8 +7,8 @@ import (
 
 var IsInit = false
 
-func InitConfig() error {
-	return InitConfigWithArgs(yaml.Driver, "resources/config.yml")
+func InitConfig(path string) error {
+	return InitConfigWithArgs(yaml.Driver, path)
 }
 
 func InitConfigWithArgs(driver *config.StdDriver, path string) error {
