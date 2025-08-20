@@ -1,4 +1,4 @@
-module file-manager
+module github.com/Kamegatze/file-manager-go
 
 go 1.24.6
 

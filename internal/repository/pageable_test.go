@@ -1,10 +1,10 @@
 package repository_test
 
 import (
-	"file-manager/internal/repository"
 	"fmt"
 	"testing"
 
+	"github.com/Kamegatze/file-manager-go/internal/repository"
 	"github.com/stretchr/testify/assert"
 )
 

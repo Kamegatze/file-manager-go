@@ -2,12 +2,12 @@ package utility_test
 
 import (
 	"context"
-	"file-manager/internal/configuration"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/Kamegatze/file-manager-go/internal/configuration"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"

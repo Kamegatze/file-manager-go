@@ -1,16 +1,16 @@
 package file_system_repository_test
 
 import (
-	"file-manager/internal/configuration"
-	"file-manager/internal/entity"
-	"file-manager/internal/repository"
-	file_system_repository "file-manager/internal/repository/file-system"
-	user_repository "file-manager/internal/repository/user"
-	utility_test "file-manager/internal/utility/test"
-	pointer_utility "file-manager/pkg/pointer-utility"
 	"fmt"
 	"testing"
 
+	"github.com/Kamegatze/file-manager-go/internal/configuration"
+	"github.com/Kamegatze/file-manager-go/internal/entity"
+	"github.com/Kamegatze/file-manager-go/internal/repository"
+	file_system_repository "github.com/Kamegatze/file-manager-go/internal/repository/file-system"
+	user_repository "github.com/Kamegatze/file-manager-go/internal/repository/user"
+	utility_test "github.com/Kamegatze/file-manager-go/internal/utility/test"
+	pointer_utility "github.com/Kamegatze/file-manager-go/pkg/pointer-utility"
 	"github.com/google/uuid"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/stretchr/testify/assert"

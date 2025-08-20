@@ -1,8 +1,9 @@
 package main
 
 import (
-	"file-manager/internal/configuration"
 	"log"
+
+	"github.com/Kamegatze/file-manager-go/internal/configuration"
 )
 
 func main() {

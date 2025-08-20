@@ -2,11 +2,12 @@ package user_repository
 
 import (
 	"database/sql"
-	"file-manager/internal/entity"
-	"file-manager/internal/repository"
-	pointer_utility "file-manager/pkg/pointer-utility"
+
 	"time"
 
+	"github.com/Kamegatze/file-manager-go/internal/entity"
+	"github.com/Kamegatze/file-manager-go/internal/repository"
+	pointer_utility "github.com/Kamegatze/file-manager-go/pkg/pointer-utility"
 	"github.com/google/uuid"
 	"github.com/huandu/go-sqlbuilder"
 )

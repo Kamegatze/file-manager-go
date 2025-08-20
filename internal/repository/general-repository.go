@@ -2,12 +2,13 @@ package repository
 
 import (
 	"database/sql"
-	"file-manager/internal/configuration"
-	pointer_utility "file-manager/pkg/pointer-utility"
+
 	"fmt"
 	"log"
 	"reflect"
 
+	"github.com/Kamegatze/file-manager-go/internal/configuration"
+	pointer_utility "github.com/Kamegatze/file-manager-go/pkg/pointer-utility"
 	"github.com/huandu/go-sqlbuilder"
 )
 
